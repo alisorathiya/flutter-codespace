@@ -1,0 +1,107 @@
+// @dart=2.8
+
+import 'package:flutter/material.dart';
+import 'dart:async';
+
+import 'package:flutter/services.dart';
+import 'package:libv2ray/libv2ray.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+// var config = """
+// {
+//   "inbounds": [
+//     {
+//       "listen": "127.0.0.1",
+//       "port": 1080,
+//       "protocol": "socks"
+//     }
+//   ],
+//   "outbounds": [
+//     {
+//       "protocol": "freedom"
+//     }
+//   ]
+// }
+// """;
+
+var config =
+    "vmess://ewogICAgImFkZCI6ICI4MDgwLTI3NTU1M2Q4MzIyZDQ4Y2FiNGVlNmYwN2I3MjUxYWFkLm9ucGF0ci5jbG91ZCIsCiAgICAiYWlkIjogIjAiLAogICAgImhvc3QiOiAiODA4MC0yNzU1NTNkODMyMmQ0OGNhYjRlZTZmMDdiNzI1MWFhZC5vbnBhdHIuY2xvdWQiLAogICAgImlkIjogImVhNDkwOWVmLTdjYTYtNGI0Ni1iZjJlLTZjMDc4OTZlZjMzOCIsCiAgICAibmV0IjogIndzIiwKICAgICJwYXRoIjogIi9lYTQ5MDllZi03Y2E2LTRiNDYtYmYyZS02YzA3ODk2ZWYzMzgtdm0iLAogICAgInBvcnQiOiAiNDQzIiwKICAgICJwcyI6ICJTRSBWTSIsCiAgICAic2N5IjogImF1dG8iLAogICAgInNuaSI6ICIiLAogICAgInRscyI6ICJ0bHMiLAogICAgInR5cGUiOiAibm9uZSIsCiAgICAidiI6ICIyIgp9Cg==";
+
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  String _platformVersion = 'Unknown';
+  int _count = -2;
+
+  @override
+  void initState() {
+    super.initState();
+    initPlatformState();
+  }
+
+  // Platform messages are asynchronous, so we initialize in an async method.
+  Future<void> initPlatformState() async {
+    String platformVersion;
+    // Platform messages may fail, so we use a try/catch PlatformException.
+    try {
+      platformVersion = await Libv2ray.platformVersion;
+    } on PlatformException {
+      platformVersion = 'Failed to get platform version.';
+    }
+
+    // If the widget was removed from the tree while the asynchronous platform
+    // message was in flight, we want to discard the reply rather than calling
+    // setState to update our non-existent appearance.
+    if (!mounted) return;
+
+    setState(() {
+      _platformVersion = platformVersion;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text('Plugin example app'),
+        ),
+        body: Center(
+          child: Column(
+            children: [
+              Text('Running on: $_platformVersion\n'),
+              TextButton(
+                  onPressed: () async {
+                    try {
+                      await Libv2ray.start(config);
+                    } on Error {
+                      return;
+                    }
+                  },
+                  child: Text("启动 v2ray")),
+              TextButton(
+                  onPressed: () async {
+                    await Libv2ray.stop();
+                  },
+                  child: Text("停止 v2ray")),
+              TextButton(
+                  onPressed: () async {
+                    var c = await Libv2ray.status();
+                    setState(() {
+                      _count = c;
+                    });
+                  },
+                  child: Text("当前状态 ${_count.toString()}")),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
